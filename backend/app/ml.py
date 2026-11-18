@@ -24,7 +24,7 @@ def fit_forest(matrix, settings):
     return pipeline.fit(matrix)
 
 
-def analyze(data, settings: Settings) -> Result:
+def analyze(data, settings: Settings, fitted_model=None) -> Result:
     if len(set(settings.curves)) != len(settings.curves) or set(settings.curves) - data["curves"].keys():
         raise ValueError("Проверьте выбранные каналы.")
     depth = data["depth"]
@@ -61,10 +61,10 @@ def analyze(data, settings: Settings) -> Result:
     if "isolation" in settings.methods:
         versions["isolation"] = f"GeoCheck IF 1.0 / scikit-learn {sklearn.__version__}"
         usable = np.isfinite(matrix).any(axis=1)
-        if usable.sum() < 8:
+        if usable.sum() < (1 if fitted_model is not None else 8):
             notes.append("Isolation Forest пропущен: требуется минимум 8 строк с измерениями.")
         else:
-            fitted = fit_forest(matrix[usable], settings)
+            fitted = fitted_model if fitted_model is not None else fit_forest(matrix[usable], settings)
             severity = np.full(len(depth), np.nan)
             severity[usable] = -fitted.score_samples(matrix[usable])
             flags = np.zeros(len(depth), dtype=bool)

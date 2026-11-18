@@ -7,11 +7,18 @@ import {
   Route,
   Routes,
   useLocation,
+  Navigate,
 } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Activity,
-  ArrowUpRight,
+  BookOpen,
+  BrainCircuit,
   ChevronRight,
   Database,
   FileBarChart2,
@@ -20,291 +27,299 @@ import {
   Layers3,
   LayoutDashboard,
   Menu,
-  Monitor,
-  PanelLeftClose,
-  ScanLine,
-  Upload,
+  Plus,
+  RefreshCw,
+  Search,
+  X,
 } from "lucide-react";
-import { fmt, Logs, methods, Result, Run, useApi, Well } from "./api";
-import { History, Panel, Source, Stats } from "./components/ui";
-import { LogPlot } from "./components/LogPlot";
+import { Logs, Model, post, Run, useApi, Well } from "./api";
 import { Workspace } from "./pages/Workspace";
-import { Quality, Reports, Viewer } from "./pages/Research";
+import { Reports } from "./pages/Research";
+import { Workbench } from "./pages/Workbench";
+import { Models } from "./pages/Models";
+import { Overview } from "./pages/Overview";
+import { Sources } from "./pages/Sources";
 import "./styles.css";
 
-const nav = [
+const navigation = [
   {
     path: "/",
-    name: "Обзор",
+    name: "Обзор проекта",
     icon: LayoutDashboard,
-    desc: "Состояние данных и результаты контроля качества.",
-  },
-  {
-    path: "/data",
-    name: "Данные скважин",
-    icon: Database,
-    desc: "Импорт файлов, метаданные и предпросмотр измерений.",
+    subtitle: "Данные, проверки и модели в одном рабочем пространстве.",
   },
   {
     path: "/viewer",
-    name: "Каротаж",
+    name: "Анализ скважины",
     icon: Activity,
-    desc: "Синхронное исследование кривых по глубине.",
+    subtitle: "Исследуйте каротаж и проверяйте выводы алгоритмов.",
   },
   {
-    path: "/quality",
-    name: "Контроль качества",
-    icon: ScanLine,
-    desc: "Параметры алгоритмов и интервалы для экспертной проверки.",
+    path: "/data",
+    name: "Каталог данных",
+    icon: Database,
+    subtitle: "Скважины, исходные измерения и контроль формата.",
+  },
+  {
+    path: "/models",
+    name: "Модели и обучение",
+    icon: BrainCircuit,
+    subtitle: "От обучающей выборки до проверки на новых скважинах.",
   },
   {
     path: "/reports",
     name: "Отчёты",
     icon: FileBarChart2,
-    desc: "Сохранённые результаты, графики и экспорт анализа.",
+    subtitle: "Воспроизводимые результаты с параметрами и версиями моделей.",
+  },
+  {
+    path: "/sources",
+    name: "Источники данных",
+    icon: BookOpen,
+    subtitle:
+      "Происхождение данных и опубликованные материалы для исследования.",
   },
 ];
 function App() {
-  const [mobile, setMobile] = useState(false),
-    [chosen, choose] = useState("");
+  const [open, setOpen] = useState(false),
+    [selected, setSelected] = useState(
+      () => localStorage.getItem("geocheck-well") ?? "",
+    ),
+    [search, setSearch] = useState("");
   const location = useLocation(),
-    page = nav.find((p) => p.path === location.pathname) ?? nav[0];
+    cache = useQueryClient();
+  const page =
+    navigation.find((p) => p.path === location.pathname) ?? navigation[0];
   const health = useApi<{ status: string }>("/health"),
     datasets = useApi<Well[]>("/datasets"),
-    analyses = useApi<Run[]>("/analysis");
+    analyses = useApi<Run[]>("/analysis"),
+    models = useApi<Model[]>("/models");
   const wells = datasets.data ?? [],
     runs = analyses.data ?? [],
-    well = wells.find((w) => w.id === chosen) ?? wells[0],
-    latest = runs.find((r) => r.dataset_id === well?.id);
-  const logs = useApi<Logs>("/datasets/" + well?.id + "/curves", !!well),
-    result = useApi<Result>("/analysis/" + latest?.id + "/results", !!latest);
-  const error = [health, datasets, analyses, logs, result].find(
+    trained = models.data ?? [];
+  const well = wells.find((w) => w.id === selected) ?? wells[0];
+  const logs = useApi<Logs>("/datasets/" + well?.id + "/curves", !!well);
+  function select(id: string) {
+    setSelected(id);
+    localStorage.setItem("geocheck-well", id);
+  }
+  const restore = useMutation({
+    mutationFn: () => post<Well[]>("/demo/restore"),
+    onSuccess: async (ws) => {
+      await cache.invalidateQueries();
+      select(ws[0].id);
+    },
+  });
+  const failure = [health, datasets, analyses, models, logs].find(
     (q) => q.isError,
   )?.error;
-  const placeholder = (
-    <div className="panel empty">
-      {error ? (
-        "Не удалось получить данные."
-      ) : datasets.isLoading || logs.isFetching ? (
-        "Загрузка данных…"
-      ) : (
-        <>
-          Загрузите LAS или CSV в разделе{" "}
-          <Link to="/data">«Данные скважин»</Link>.
-        </>
-      )}
+  const empty = (
+    <div className="empty-state">
+      <Layers3 size={38} />
+      <h2>
+        {datasets.isLoading
+          ? "Загружаем рабочую область"
+          : "Начните с данных скважины"}
+      </h2>
+      <p>
+        Загрузите LAS или CSV либо откройте синтетический набор для знакомства с
+        анализом.
+      </p>
+      <div className="actions">
+        <Link className="primary" to="/data">
+          <Plus size={16} />
+          Загрузить файл
+        </Link>
+        <button disabled={restore.isPending} onClick={() => restore.mutate()}>
+          <RefreshCw size={15} />
+          {restore.isPending ? "Подготовка…" : "Восстановить демо"}
+        </button>
+      </div>
     </div>
   );
-  const dash = (
-    <>
-      <Stats wells={wells} runs={runs} />
-      {well && logs.data ? (
-        <div className="overviewgrid">
-          <Panel
-            title="Каротажный профиль"
-            action={
-              <Link className="sq" aria-label="Открыть каротаж" to="/viewer">
-                <ArrowUpRight size={17} />
-              </Link>
-            }
-          >
-            <div className="wellstrip">
-              <b>
-                <Layers3 size={15} />
-                {well.name}
-              </b>
-              <span>
-                {fmt(well.start)}–{fmt(well.end)} {well.depth_unit || "ед. ?"}
-              </span>
-              <Source well={well} />
-            </div>
-            <LogPlot
-              data={logs.data}
-              channels={Object.keys(well.units).slice(0, 4)}
-              unit={well.depth_unit}
-            />
-            <div className="foot">
-              <span className="dot" /> {fmt(well.rows)} отсчётов{" "}
-              <span className="separ">/</span> {Object.keys(well.units).length}{" "}
-              каналов
-            </div>
-          </Panel>
-          <Panel title="Контроль качества" action={<ScanLine size={17} />}>
-            <div className="qcbody">
-              <div className="qcnum">{latest?.count ?? "—"}</div>
-              <p>{!latest ? "Анализ ещё не запускался" : latest.count ? "интервалов для экспертной проверки" : "предупреждений по выбранным методам"}</p>
-              <div className="rule" />
-              {Object.entries(methods).map(([k, v], i) => {
-                const count =
-                  result.data?.findings.filter((f) => f.method === k).length ??
-                  0;
-                return (
-                  <div className="barrow" key={k}>
-                    <label>
-                      {v}
-                      <b>
-                        {latest?.settings.methods.includes(k) ? count : "—"}
-                      </b>
-                    </label>
-                    <div className="rail">
-                      <i
-                        style={{
-                          width:
-                            (100 * count) / Math.max(1, latest?.count ?? 0) +
-                            "%",
-                          background: "var(--curve-" + i + ")",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-              <Link className="button full" to="/quality">
-                Открыть анализ <ChevronRight size={15} />
-              </Link>
-            </div>
-          </Panel>
-        </div>
-      ) : (
-        placeholder
-      )}
-      <Panel
-        title="Последние анализы"
-        action={
-          <Link to="/reports">
-            Все отчёты <ArrowUpRight size={14} />
-          </Link>
-        }
-      >
-        <History runs={runs.slice(0, 4)} wells={wells} />
-      </Panel>
-      {wells.length > 0 && (
-        <Panel
-          title="Скважины"
-          action={
-            <Link to="/data">
-              Каталог <ArrowUpRight size={14} />
-            </Link>
-          }
-        >
-          {wells.map((w) => (
-            <div className="wellstrip" key={w.id}>
-              <b>{w.name}</b>
-              <Source well={w} />
-              <span>
-                {w.format} · {fmt(w.rows)} строк
-              </span>
-              <Link to="/viewer" onClick={() => choose(w.id)}>
-                Открыть каротаж →
-              </Link>
-            </div>
-          ))}
-        </Panel>
-      )}
-    </>
-  );
   return (
-    <div className={"shell " + (mobile ? "navopen" : "")}>
-      <aside>
-        <div className="brand">
-          <div className="logomark">
-            <Layers3 size={27} />
-          </div>
-          <strong>
-            GeoCheck <em>AI</em>
-          </strong>
-        </div>
-        <div className="sidebody">
-          <div className="navlabel">Рабочая область</div>
-          <nav>
-            {nav.map((p) => (
-              <NavLink
-                key={p.path}
-                to={p.path}
-                end
-                onClick={() => setMobile(false)}
-              >
-                <p.icon size={18} />
-                {p.name}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="navlabel second">Текущая скважина</div>
-          <div className="sidewell">
-            <Layers3 size={17} />
-            <select
-              aria-label="Текущая скважина"
-              value={well?.id ?? ""}
-              onChange={(e) => choose(e.target.value)}
-            >
-              {wells.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-              {!wells.length && <option value="">Нет данных</option>}
-            </select>
-          </div>
-        </div>
-        <div className="sidefoot">
-          <HardDrive size={17} />
+    <div className={"shell " + (open ? "navopen" : "")}>
+      <aside className="sidebar">
+        <Link to="/" className="brand">
+          <span className="brand-icon">
+            <Layers3 size={23} />
+          </span>
+          <span>
+            GeoCheck <b>AI</b>
+            <small>WELL DATA WORKSPACE</small>
+          </span>
+        </Link>
+        <div className="project-box">
+          <span className="project-avatar">G</span>
           <div>
-            Локальная среда<small>GeoCheck AI · v1.0</small>
+            <strong>Геофизическая лаборатория</strong>
+            <small>Локальный проект</small>
+          </div>
+        </div>
+        <div className="nav-label">РАБОЧАЯ ОБЛАСТЬ</div>
+        <nav>
+          {navigation.map((n) => (
+            <NavLink
+              end
+              key={n.path}
+              to={n.path}
+              onClick={() => setOpen(false)}
+            >
+              <n.icon size={18} />
+              <span>{n.name}</span>
+              {n.path === "/models" && trained.length > 0 && (
+                <small>{trained.length}</small>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="side-wells">
+          <div className="nav-label">
+            СКВАЖИНЫ <span>{wells.length}</span>
+          </div>
+          <div className="side-search">
+            <Search size={13} />
+            <input
+              aria-label="Поиск скважины"
+              placeholder="Найти скважину"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {wells
+            .filter((w) => w.name.toLowerCase().includes(search.toLowerCase()))
+            .map((w) => (
+              <Link
+                onClick={() => {
+                  select(w.id);
+                  setOpen(false);
+                }}
+                to="/viewer"
+                key={w.id}
+                className={"side-well " + (well?.id === w.id ? "chosen" : "")}
+              >
+                <span
+                  className={
+                    "well-dot " + (w.source === "synthetic" ? "synthetic" : "")
+                  }
+                />
+                <span>
+                  {w.name}
+                  <small>
+                    {Object.keys(w.units).length} каналов ·{" "}
+                    {w.depth_unit || "ед. ?"}{" "}
+                  </small>
+                </span>
+                <ChevronRight size={13} />
+              </Link>
+            ))}
+        </div>
+        <div className="sidebar-bottom">
+          <button
+            className="demo-button"
+            disabled={restore.isPending}
+            onClick={() => restore.mutate()}
+          >
+            <RefreshCw size={15} />
+            {restore.isPending ? "Подготовка данных…" : "Восстановить демо"}
+          </button>
+          <div className="local-status">
+            <HardDrive size={15} />
+            <span>
+              Хранение на компьютере<small>GeoCheck AI · 2.0</small>
+            </span>
+            <i className={health.data ? "dot" : "offline"} />
           </div>
         </div>
       </aside>
+      {open && (
+        <button
+          className="nav-shade"
+          aria-label="Закрыть меню"
+          onClick={() => setOpen(false)}
+        />
+      )}
       <div className="main">
-        <header className="top">
+        <header className="topbar">
           <button
-            className="mobilebtn"
+            className="mobilebtn iconbtn"
             aria-label="Навигация"
-            onClick={() => setMobile(!mobile)}
+            onClick={() => setOpen(!open)}
           >
-            {mobile ? <PanelLeftClose /> : <Menu />}
+            {open ? <X size={18} /> : <Menu size={18} />}
           </button>
-          <FolderOpen size={15} />
-          <span>Рабочая область</span>
+          <FolderOpen size={16} />
+          <span>Лаборатория</span>
           <ChevronRight size={13} />
           <b>{page.name}</b>
-          <span className="online">
+          <div className="top-status">
             <i className={health.data ? "dot" : "offline"} />
             {health.data
-              ? "API подключён"
+              ? "Сервер подключён"
               : health.error
-                ? "API недоступен"
+                ? "Сервер недоступен"
                 : "Подключение…"}
-          </span>
+          </div>
+          <span className="user-avatar">GC</span>
         </header>
         <main>
           <div className="pagehead">
             <div>
-              <h1>{page.path === "/" ? "Обзор проекта" : page.name}</h1>
-              <p>{page.desc}</p>
+              <h1>{page.name}</h1>
+              <p>{page.subtitle}</p>
             </div>
-            {page.path === "/" && (
+            {location.pathname !== "/data" && (
               <Link to="/data" className="primary">
-                <Upload size={16} /> Загрузить данные
+                <Plus size={17} />
+                Загрузить данные
               </Link>
             )}
           </div>
-          {error && (
-            <p role="alert">
-              {error.message}{" "}
-              <button onClick={() => window.location.reload()}>
+          {failure && (
+            <div role="alert">
+              {failure.message}
+              <button onClick={() => cache.invalidateQueries()}>
                 Повторить
               </button>
-            </p>
+            </div>
+          )}
+          {restore.error && <div role="alert">{restore.error.message}</div>}
+          {restore.isSuccess && (
+            <div className="notice" role="status">
+              <Layers3 size={16} />
+              Демонстрационный набор доступен: две скважины для обучения и одна
+              для проверки.
+              <button
+                className="iconbtn"
+                aria-label="Скрыть уведомление"
+                onClick={() => restore.reset()}
+              >
+                <X size={14} />
+              </button>
+            </div>
           )}
           <Routes>
-            <Route path="/" element={dash} />
+            <Route
+              path="/"
+              element={
+                <Overview
+                  wells={wells}
+                  runs={runs}
+                  models={trained}
+                  select={select}
+                  empty={empty}
+                />
+              }
+            />
             <Route
               path="/data"
               element={
                 <Workspace
+                  key={well?.id}
                   wells={wells}
                   well={well}
                   data={logs.data}
-                  select={choose}
+                  select={select}
                 />
               }
             />
@@ -312,29 +327,29 @@ function App() {
               path="/viewer"
               element={
                 well && logs.data ? (
-                  <Viewer
+                  <Workbench
                     key={well.id}
                     well={well}
                     data={logs.data}
-                    results={result.data}
+                    runs={runs.filter((r) => r.dataset_id === well.id)}
+                    models={trained}
                   />
                 ) : (
-                  placeholder
+                  empty
                 )
               }
             />
             <Route
               path="/quality"
+              element={<Navigate to="/viewer" replace />}
+            />
+            <Route
+              path="/models"
               element={
-                well ? (
-                  <Quality
-                    key={well.id}
-                    well={well}
-                    latest={latest}
-                    result={result.data}
-                  />
+                datasets.isPending || models.isPending ? (
+                  <div className="empty">Загрузка скважин и моделей…</div>
                 ) : (
-                  placeholder
+                  <Models wells={wells} models={trained} />
                 )
               }
             />
@@ -342,20 +357,21 @@ function App() {
               path="/reports"
               element={<Reports runs={runs} wells={wells} />}
             />
-            <Route path="*" element={<Link to="/">Вернуться к обзору</Link>} />
+            <Route path="/sources" element={<Sources />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <footer>
-            <span>
-              <Monitor size={13} /> Независимый студенческий прототип
-            </span>
-            <span>GeoCheck AI / 1.0</span>
+            <span>Независимый исследовательский прототип</span>
+            <span>Исходные измерения сохраняются в локальной базе</span>
           </footer>
         </main>
       </div>
     </div>
   );
 }
-const client = new QueryClient();
+const client = new QueryClient({
+  defaultOptions: { queries: { refetchOnWindowFocus: true } },
+});
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={client}>
     <BrowserRouter>

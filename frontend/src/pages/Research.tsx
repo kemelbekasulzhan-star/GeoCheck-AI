@@ -9,6 +9,7 @@ import {
   Logs,
   methods,
   Result,
+  Review,
   Run,
   useApi,
   Well,
@@ -248,6 +249,7 @@ interface Report extends Run {
   result: Result;
   plot: Logs;
   limitation: string;
+  reviews?: Review[];
 }
 export function Reports({ runs, wells }: { runs: Run[]; wells: Well[] }) {
   const [params, set] = useSearchParams(),
@@ -297,6 +299,23 @@ export function Reports({ runs, wells }: { runs: Run[]; wells: Well[] }) {
                     .map(([k, v]) => methods[k] + " " + v)
                     .join(" / ")}
                 </p>
+                {r.model && <p>Сохранённая модель · {r.model.name}</p>}
+                <p>
+                  Эксперт подтвердил{" "}
+                  {
+                    (r.reviews ?? []).filter((x) => x.status === "confirmed")
+                      .length
+                  }{" "}
+                  · отклонил{" "}
+                  {
+                    (r.reviews ?? []).filter((x) => x.status === "dismissed")
+                      .length
+                  }{" "}
+                  · ожидают решения{" "}
+                  {r.count -
+                    (r.reviews ?? []).filter((x) => x.status !== "pending")
+                      .length}
+                </p>
                 <div className="actions">
                   <a
                     className="button"
@@ -327,6 +346,23 @@ export function Reports({ runs, wells }: { runs: Run[]; wells: Well[] }) {
               <div className="foot">
                 {r.limitation} {r.notes.join(" ")}
               </div>
+              <Findings items={r.result.findings} unit={r.well.depth_unit} />
+              {!!r.reviews?.length && (
+                <div className="formbody">
+                  <h3>Решения эксперта</h3>
+                  {r.reviews.map((review) => (
+                    <p key={review.finding_index}>
+                      Интервал {review.finding_index + 1} ·{" "}
+                      {review.status === "confirmed"
+                        ? "Подтверждено"
+                        : review.status === "dismissed"
+                          ? "Отклонено"
+                          : "На проверке"}{" "}
+                      · {review.comment || "Без комментария"}
+                    </p>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </Panel>

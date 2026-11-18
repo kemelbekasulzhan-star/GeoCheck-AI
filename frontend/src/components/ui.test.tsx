@@ -15,6 +15,7 @@ const well: Well = {
   end: 1,
   depth_unit: "m",
   rows: 2,
+  missing: 0,
   units: { GR: "API" },
 };
 it("labels synthetic and uploaded sources", () => {

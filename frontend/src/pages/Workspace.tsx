@@ -21,11 +21,14 @@ export function Workspace({
   const [error, setError] = useState(""),
     [hidden, setHidden] = useState<string[]>([]);
   const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const upload = useMutation({
     mutationFn: async (file: File) => {
       if (file.size > 10485760) throw Error("Максимальный размер — 10 МиБ.");
       const form = new FormData();
       form.append("file", file);
+      if (sourceUrl) form.append("source_url", sourceUrl);
       return api<Well>("/datasets/upload", { method: "POST", body: form });
     },
     onSuccess: async (w) => {
@@ -87,6 +90,26 @@ export function Workspace({
           }}
         />
       </div>
+      <div className="catalog-filters">
+        <label className="field">
+          Найти скважину
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Название или имя файла"
+          />
+        </label>
+        <label className="field">
+          Источник следующего загружаемого файла
+          <input
+            type="url"
+            value={sourceUrl}
+            onChange={(e) => setSourceUrl(e.target.value)}
+            placeholder="https://… (необязательно)"
+          />
+          <small>Ссылка сохранится в паспорте данных и обученной модели.</small>
+        </label>
+      </div>
       {error && <p role="alert">{error}</p>}
       <Panel title="Каталог скважин">
         <div className="scroll">
@@ -102,51 +125,71 @@ export function Workspace({
               </tr>
             </thead>
             <tbody>
-              {wells.map((w) => (
-                <tr key={w.id} className={w.id === well?.id ? "selected" : ""}>
-                  <td>
-                    <button
-                      className="textbtn"
-                      onClick={() => {
-                        select(w.id);
-                        setHidden([]);
-                        setPage(0);
-                      }}
-                    >
-                      <FileSpreadsheet size={15} />
-                      {w.name}
-                    </button>
-                    <small>{w.filename}</small>
-                  </td>
-                  <td>
-                    <Source well={w} />
-                  </td>
-                  <td>{w.format}</td>
-                  <td>{fmt(w.rows)}</td>
-                  <td>
-                    {fmt(w.start)}–{fmt(w.end)} {w.depth_unit || "ед. ?"}
-                  </td>
-                  <td>
-                    <button
-                      aria-label={"Удалить " + w.name}
-                      className="iconbtn"
-                      disabled={remove.isPending}
-                      onClick={() => {
-                        if (
-                          confirm(
-                            "Удалить файл " +
-                              w.filename +
-                              " и его сохранённые анализы?",
+              {wells
+                .filter((w) =>
+                  (w.name + " " + w.filename)
+                    .toLowerCase()
+                    .includes(search.toLowerCase()),
+                )
+                .map((w) => (
+                  <tr
+                    key={w.id}
+                    className={w.id === well?.id ? "selected" : ""}
+                  >
+                    <td>
+                      <button
+                        className="textbtn"
+                        onClick={() => {
+                          select(w.id);
+                          setHidden([]);
+                          setPage(0);
+                        }}
+                      >
+                        <FileSpreadsheet size={15} />
+                        {w.name}
+                      </button>
+                      <small>{w.filename}</small>
+                    </td>
+                    <td>
+                      <Source well={w} />
+                      {w.source_url && (
+                        <small>
+                          <a
+                            href={w.source_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Открыть источник ↗
+                          </a>
+                        </small>
+                      )}
+                    </td>
+                    <td>{w.format}</td>
+                    <td>{fmt(w.rows)}</td>
+                    <td>
+                      {fmt(w.start)}–{fmt(w.end)} {w.depth_unit || "ед. ?"}
+                    </td>
+                    <td>
+                      <button
+                        aria-label={"Удалить " + w.name}
+                        className="iconbtn"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              "Удалить файл " +
+                                w.filename +
+                                " и его сохранённые анализы?",
+                            )
                           )
-                        )
-                          remove.mutate(w.id);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                            remove.mutate(w.id);
+                        }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -160,6 +203,17 @@ export function Workspace({
             </Link>
           }
         >
+          <div className="selection-summary">
+            <span>
+              Пропущено значений <b>{fmt(well.missing)}</b>
+            </span>
+            <span>
+              Единицы не указаны{" "}
+              <b>
+                {Object.values(well.units).filter((u) => !u).length} каналов
+              </b>
+            </span>
+          </div>
           <div className="checks">
             {Object.keys(well.units).map((k) => (
               <label key={k}>

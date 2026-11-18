@@ -18,6 +18,7 @@ class Settings(BaseModel):
 
 class RunRequest(Settings):
     dataset_id: str
+    trained_model_id: str | None = None
 
 
 class Finding(BaseModel):

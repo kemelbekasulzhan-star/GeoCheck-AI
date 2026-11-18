@@ -12,6 +12,10 @@ export interface Well {
   start: number;
   end: number;
   units: Record<string, string>;
+  missing: number;
+  demo_role?: "train" | "test";
+  has_labels?: boolean;
+  source_url?: string;
 }
 export interface Logs {
   depth: number[];
@@ -41,10 +45,55 @@ export interface Run {
   count: number;
   versions: Record<string, string>;
   notes: string[];
+  model?: { id: string; name: string };
 }
 export interface Result {
   findings: Finding[];
   scores: (number | null)[];
+}
+export interface Review {
+  finding_index: number;
+  status: "pending" | "confirmed" | "dismissed";
+  comment: string;
+  updated: string;
+}
+export interface Model {
+  id: string;
+  name: string;
+  created: string;
+  algorithm: string;
+  sklearn: string;
+  curves: string[];
+  units: Record<string, string>;
+  trees: number;
+  contamination: number;
+  seed: number;
+  train_rows: number;
+  duration_seconds: number;
+  data_scope: string;
+  train: { id: string; name: string; rows: number; source: string }[];
+  evaluation: {
+    id: string;
+    name: string;
+    scored_rows: number;
+    flagged_rows: number;
+    metrics: {
+      precision: number;
+      recall: number;
+      f1: number;
+      tp: number;
+      fp: number;
+      fn: number;
+      tn: number;
+    } | null;
+  }[];
+}
+export function post<T>(path: string, body?: unknown) {
+  return api<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
 }
 export const methods: Record<string, string> = {
   missing: "Пропуски",

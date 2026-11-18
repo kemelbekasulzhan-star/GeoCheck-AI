@@ -39,3 +39,21 @@ class Marker(Base):
     __tablename__ = "markers"
     id: Mapped[str] = mapped_column(String, primary_key=True)
 
+
+class TrainedModel(Base):
+    __tablename__ = "trained_models"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=uid)
+    name: Mapped[str]
+    created: Mapped[str] = mapped_column(default=now)
+    metadata_json: Mapped[dict] = mapped_column(JSON)
+    artifact: Mapped[bytes] = mapped_column(LargeBinary, deferred=True)
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+    analysis_id: Mapped[str] = mapped_column(ForeignKey("analyses.id"), primary_key=True)
+    finding_index: Mapped[int] = mapped_column(primary_key=True)
+    status: Mapped[str]
+    comment: Mapped[str]
+    updated: Mapped[str] = mapped_column(default=now)
+

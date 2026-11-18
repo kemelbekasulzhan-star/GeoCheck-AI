@@ -29,7 +29,11 @@ export function LogPlot({
     const traces = channels.map((key, i) => {
       const channel = data.curves[key],
         suffix = i ? String(i + 1) : "",
-        color = style.getPropertyValue("--curve-" + (i % 5)).trim();
+        color = style
+          .getPropertyValue(
+            "--curve-" + (Object.keys(data.curves).indexOf(key) % 5),
+          )
+          .trim();
       axes["xaxis" + suffix] = {
         domain: [i / n + gutter, (i + 1) / n - gutter],
         side: "top",
@@ -61,31 +65,29 @@ export function LogPlot({
     const visibleFindings = range
       ? findings.filter((f) => f.end >= range[0] && f.start <= range[1])
       : findings;
-    const shapes = visibleFindings
-      .slice(0, 2000)
-      .flatMap((f) =>
-        channels.flatMap((c, i) =>
-          f.curve.split(" + ").includes(c)
-            ? [
-                {
-                  type: "rect",
-                  xref: "paper",
-                  yref: "y",
-                  x0: i / n + gutter,
-                  x1: (i + 1) / n - gutter,
-                  y0: f.start,
-                  y1: Math.max(
-                    f.end,
-                    f.start + (data.depth.at(-1)! - data.depth[0]) / 500,
-                  ),
-                  line: { width: 0 },
-                  fillcolor: "rgba(208,142,59,.18)",
-                  layer: "below",
-                },
-              ]
-            : [],
-        ),
-      );
+    const shapes = visibleFindings.slice(0, 2000).flatMap((f) =>
+      channels.flatMap((c, i) =>
+        f.curve.split(" + ").includes(c)
+          ? [
+              {
+                type: "rect",
+                xref: "paper",
+                yref: "y",
+                x0: i / n + gutter,
+                x1: (i + 1) / n - gutter,
+                y0: f.start,
+                y1: Math.max(
+                  f.end,
+                  f.start + (data.depth.at(-1)! - data.depth[0]) / 500,
+                ),
+                line: { width: 0 },
+                fillcolor: "rgba(208,142,59,.18)",
+                layer: "below",
+              },
+            ]
+          : [],
+      ),
+    );
     Plotly.react(
       el,
       traces,
@@ -96,7 +98,11 @@ export function LogPlot({
         showlegend: false,
         dragmode: "zoom",
         hovermode: "closest",
-        font: { family: "Consolas, monospace", size: 10, color: "#576e74" },
+        font: {
+          family: "IBM Plex Mono, Consolas, monospace",
+          size: 10,
+          color: "#576e74",
+        },
         plot_bgcolor: "#fbfcfc",
         paper_bgcolor: "#ffffff",
         yaxis: {
@@ -140,15 +146,28 @@ export function LogPlot({
             "repeat(" + channels.length + ", minmax(70px,1fr))",
         }}
       >
-        {channels.map((k, i) => (
-          <span key={k} style={{ color: "var(--curve-" + (i % 5) + ")" }}>
+        {channels.map((k) => (
+          <span
+            key={k}
+            style={{
+              color:
+                "var(--curve-" +
+                (Object.keys(data.curves).indexOf(k) % 5) +
+                ")",
+            }}
+          >
             <i />
             {k} <small>{data.curves[k].unit || "ед. ?"}</small>
           </span>
         ))}
       </div>
       {error && <p role="alert">{error}</p>}
-      {findings.length > 2000 && <p className="foot">Подсветка ограничена первыми 2 000 интервалами в выбранном диапазоне. Полный список доступен в отчёте JSON.</p>}
+      {findings.length > 2000 && (
+        <p className="foot">
+          Подсветка ограничена первыми 2 000 интервалами в выбранном диапазоне.
+          Полный список доступен в отчёте JSON.
+        </p>
+      )}
       <div ref={ref} />
     </>
   );
