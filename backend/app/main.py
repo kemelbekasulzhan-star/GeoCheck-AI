@@ -1,6 +1,7 @@
 import csv
 import io
 import os
+from typing import Literal
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from .storage import Analysis, Base, Dataset, Marker, Review, TrainedModel
 from .laboratory import attach_routes, reviews_for
 from .training import load_saved
 from .ml import analyze
+from .reporting import quality_passport, passport_text, spreadsheet_safe
 
 ROOT = Path(__file__).resolve().parents[2]
 LIMITATION = "Статистическое отклонение требует экспертной проверки. Фациальная граница также может вызвать предупреждение."
@@ -95,7 +97,8 @@ def create_app(folder=None, seed=True):
         return {"status": "ok", "version": app.version, "module": QUALITY.id}
 
     @app.post("/api/datasets/upload", status_code=201)
-    def upload(file: UploadFile, source_url: str = Form(default=""), db: Session = Depends(session)):
+    def upload(file: UploadFile, source_url: str = Form(default=""),
+               source: Literal["upload", "synthetic"] = Form(default="upload"), db: Session = Depends(session)):
         raw = file.file.read(MAX_BYTES + 1)
         if len(raw) > MAX_BYTES:
             raise HTTPException(413, "Максимальный размер файла — 10 МиБ.")
@@ -106,7 +109,8 @@ def create_app(folder=None, seed=True):
         except Exception as exc:
             raise HTTPException(422, f"Ошибка чтения файла: {str(exc)[:200]}") from exc
         is_demo = raw == (DEMO_DIR / "GeoLab-01.csv").read_bytes()
-        d = Dataset(source="synthetic" if is_demo else "upload", data=data, original=raw)
+        known_synthetic = any(raw == d.original for d in db.scalars(select(Dataset).where(Dataset.source == "synthetic")))
+        d = Dataset(source="synthetic" if is_demo or known_synthetic else source, data=data, original=raw)
         db.add(d)
         db.commit()
         return summary(d)
@@ -174,17 +178,28 @@ def create_app(folder=None, seed=True):
     def report(id: str, db: Session = Depends(session)):
         a = get(db, Analysis, id)
         d = get(db, Dataset, a.dataset_id)
+        reviews = reviews_for(db, id)
         return {**describe(a), "well": summary(d), "result": a.result, "limitation": LIMITATION,
-                "reviews": reviews_for(db, id),
+                "reviews": reviews, "passport": quality_passport(d, a, reviews),
                 "plot": {"depth": d.data["depth"], "curves": {k: d.data["curves"][k] for k in a.settings["curves"]}}}
+
+    @app.get("/api/reports/{id}/summary")
+    def export_summary(id: str, db: Session = Depends(session)):
+        return Response(passport_text(report(id, db)).encode("utf-8-sig"), media_type="text/plain",
+                        headers={"Content-Disposition": 'attachment; filename="GeoCheck-passport.txt"'})
 
     @app.get("/api/reports/{id}/csv")
     def export_csv(id: str, db: Session = Depends(session)):
         result = get(db, Analysis, id).result
         buffer = io.StringIO()
-        writer = csv.DictWriter(buffer, fieldnames=["method", "curve", "start", "end", "samples", "reason", "score"])
+        reviews = {r["finding_index"]: r for r in reviews_for(db, id)}
+        writer = csv.DictWriter(buffer, fieldnames=["finding_number", "method", "curve", "start", "end", "samples", "reason", "score", "review_status", "review_comment", "review_updated"])
         writer.writeheader()
-        writer.writerows(result["findings"])
+        for index, finding in enumerate(result["findings"]):
+            review = reviews.get(index, {})
+            row = {**finding, "finding_number": index + 1, "review_status": review.get("status", "pending"),
+                   "review_comment": review.get("comment", ""), "review_updated": review.get("updated", "")}
+            writer.writerow({k: spreadsheet_safe(v) for k, v in row.items()})
         return Response(buffer.getvalue().encode("utf-8-sig"), media_type="text/csv",
                         headers={"Content-Disposition": 'attachment; filename="findings.csv"'})
 
@@ -201,5 +216,5 @@ def create_app(folder=None, seed=True):
     return app
 
 
-app = create_app()
+app = create_app(seed=False)
 

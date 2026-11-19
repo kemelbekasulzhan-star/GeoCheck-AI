@@ -1,0 +1,718 @@
+/* Presentation layer for the spacious blue workspace. */
+.passport-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+.passport-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 20px;
+  background: var(--bg);
+  border-radius: 12px;
+}
+.passport-metrics strong {
+  font-size: 28px;
+  color: var(--accent);
+}
+.passport-metrics small {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.quality-passport li {
+  margin-bottom: 12px;
+  line-height: 1.7;
+}
+.quality-passport details {
+  margin: 20px 0;
+}
+.quality-passport summary {
+  cursor: pointer;
+}
+.file-hash {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+.batch-results {
+  padding: 0;
+  list-style: none;
+}
+.batch-results li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.batch-results strong {
+  overflow-wrap: anywhere;
+}
+.batch-results [role="alert"] {
+  flex-basis: 100%;
+}
+@media (max-width: 900px) {
+  .passport-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+:root {
+  --bg: #f3f6fc;
+  --surface: #ffffff;
+  --text: #172b4d;
+  --muted: #63758e;
+  --border: #e1e8f3;
+  --accent: #3267e3;
+  --accent-hover: #2455c9;
+  --accent-soft: #eaf0ff;
+  --radius: 17px;
+  --shadow-soft: 0 5px 22px rgba(30, 67, 128, 0.035);
+}
+
+body {
+  font-size: 14px;
+}
+button,
+.button,
+.primary {
+  border-radius: 10px;
+  min-height: 39px;
+  font-size: 13px;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+button:hover,
+.button:hover {
+  background: #f0f5ff;
+  border-color: #bfd0f3;
+}
+.primary {
+  min-height: 44px;
+  padding: 12px 19px;
+  box-shadow: 0 4px 9px #3267e31a;
+}
+.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+input:not([type="checkbox"]):not([type="file"]),
+select,
+textarea {
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #9bb9ff;
+}
+.sidebar {
+  width: 248px;
+  border-color: #e5ebf5;
+}
+.brand {
+  padding: 30px 24px 27px;
+}
+.brand-icon {
+  width: 40px;
+  height: 43px;
+  border-radius: 12px;
+}
+.project-box {
+  background: #f6f8fd;
+  border-color: #e7edf7;
+  border-radius: 12px;
+  padding: 13px 11px;
+}
+.project-avatar {
+  background: #e8efff;
+  border-color: #dae4fd;
+  color: #4f75bd;
+  border-radius: 8px;
+}
+.project-box strong {
+  font-size: 10px;
+}
+.project-box small {
+  color: #70809b;
+}
+.sidebar nav {
+  gap: 6px;
+  padding: 0 15px;
+}
+.sidebar nav a {
+  border-radius: 11px;
+  padding: 13px 14px;
+  color: #5f718a;
+}
+.sidebar nav a:hover {
+  background: #f3f6fc;
+}
+.sidebar nav a.active {
+  color: #2c5fcc;
+  background: #eaf0ff;
+}
+.sidebar nav small {
+  background: #dce7ff;
+  border-radius: 5px;
+}
+.nav-label {
+  color: #7d8da7;
+  letter-spacing: 1px;
+}
+.side-well {
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: #536981;
+}
+.side-well small {
+  color: #75869d;
+}
+.side-well.chosen {
+  background: #f0f4fc;
+}
+.side-well:hover {
+  background: #eaf0ff;
+}
+.side-search {
+  color: #7e8fa7;
+}
+.demo-button {
+  border-radius: 10px;
+  background: #f6f8fd;
+  color: #5e7697;
+  border-color: #ccd9ef;
+}
+.topbar {
+  height: 70px;
+  padding: 0 36px;
+  font-size: 12px;
+}
+.top-status {
+  font-size: 11px;
+  color: #667c91;
+}
+.user-avatar {
+  background: #edf2ff;
+  border-color: #dde6fb;
+  color: #5270b0;
+  width: 33px;
+  height: 33px;
+}
+main {
+  padding: 33px 36px 18px;
+}
+h1 {
+  font-size: 31px;
+  letter-spacing: -1.1px;
+}
+.pagehead {
+  margin-bottom: 29px;
+}
+.pagehead p {
+  font-size: 13px;
+  margin-top: 9px;
+  color: #71829b;
+}
+.pagehead .primary {
+  font-size: 13px;
+}
+.metrics {
+  gap: 18px;
+  margin-bottom: 27px;
+}
+.metric {
+  padding: 21px 23px;
+  box-shadow: var(--shadow-soft);
+}
+.metric-label {
+  color: #657994;
+  font-size: 12px;
+}
+.metric strong {
+  font-size: 35px;
+  margin: 16px 0 10px;
+  color: #1c355c;
+}
+.metric > small {
+  color: #73849b;
+  font-size: 11px;
+}
+.metric-icon {
+  width: 37px;
+  height: 37px;
+  border-radius: 11px;
+}
+.teal,
+.blue {
+  background: #edf3ff;
+  color: #4f7bd4;
+}
+.panel {
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 23px;
+}
+.panelhead {
+  padding: 21px 24px;
+  min-height: 67px;
+  border-color: #edf1f8;
+}
+.panelhead h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.panelhead > a,
+.panelhead > span {
+  font-size: 12px;
+}
+.panel-description {
+  color: #73839b;
+  font-size: 12px;
+  padding: 17px 24px 7px;
+}
+.overview-columns {
+  gap: 23px;
+}
+.well-cards {
+  padding: 0 24px 14px;
+}
+.well-card {
+  padding: 22px 0;
+  gap: 14px;
+}
+.well-card:hover .well-card-main strong {
+  color: var(--accent);
+}
+.well-symbol {
+  width: 43px;
+  height: 47px;
+  border-radius: 12px;
+  background: #eff4ff;
+  border-color: #e0e9fc;
+  color: #5e84c6;
+}
+.well-card-main strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.well-card-main > span {
+  color: #7186a0;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.well-card-status small {
+  color: #71849a;
+  font-size: 11px;
+}
+.badge,
+.chip {
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+.model-promo {
+  background: #234b99;
+  border-color: #234b99;
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 23px;
+}
+.promo-icon {
+  background: #ffffff14;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  color: #dbe7ff;
+  margin-bottom: 20px;
+}
+.model-promo .eyebrow {
+  color: #b9d0ff;
+  font-size: 9px;
+}
+.model-promo h2 {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 550;
+  margin-bottom: 12px;
+}
+.model-promo p {
+  color: #c4d5f5;
+  font-size: 12px;
+}
+.training-steps {
+  color: #d6e3fc;
+  font-size: 11px;
+  gap: 10px;
+  margin: 20px 0 23px;
+}
+.training-steps i {
+  background: #a2c4ff;
+}
+.model-promo .primary {
+  background: white;
+  color: #2452aa;
+  border-color: white;
+  font-size: 12px;
+}
+.model-promo .primary:hover {
+  background: #edf3ff;
+}
+.model-promo > small {
+  color: #bdd0f2;
+  font-size: 10px;
+  margin-top: 13px;
+}
+.recent-runs {
+  padding: 3px 24px 12px;
+}
+.recent-run {
+  padding: 22px 0;
+  gap: 13px;
+}
+.run-icon {
+  background: #f0f4fb;
+  color: #7b94b8;
+  width: 35px;
+  height: 39px;
+  border-radius: 10px;
+}
+.recent-run strong {
+  font-size: 13px;
+}
+.recent-run p {
+  font-size: 11px;
+  color: #70839e;
+}
+.recent-run small {
+  font-size: 10px;
+  color: #8292a8;
+}
+th {
+  color: #657b97;
+  background: #f8faff;
+  font-size: 11px;
+}
+td {
+  color: #566d89;
+}
+td,
+th {
+  padding: 16px 19px;
+}
+tr.selected {
+  background: #edf3ff;
+}
+.textbtn,
+.iconbtn {
+  box-shadow: none;
+}
+.textbtn {
+  border-radius: 0;
+  min-height: 0;
+  padding: 0;
+}
+.iconbtn {
+  border-radius: 8px;
+  min-height: 31px;
+}
+.foot {
+  color: #687e98;
+  padding: 12px 20px;
+  font-size: 10px;
+}
+.formbody {
+  padding: 22px 24px;
+}
+.field {
+  font-size: 12px;
+  gap: 9px;
+}
+.field small,
+.formbody .hint {
+  color: #687f9a;
+  font-size: 11px;
+}
+.drop {
+  background: #f6f9ff;
+  border-color: #b5caed;
+  border-radius: 17px;
+  padding: 29px;
+}
+.green {
+  background: #e9f0ff;
+  color: var(--accent);
+}
+.well-header {
+  padding: 20px 24px;
+  border-radius: 14px;
+}
+.well-header h2 {
+  color: #223d65;
+}
+.algorithm-card {
+  background: #f2f6ff;
+  border-color: #e0e9fa;
+  color: #547ec3;
+  border-radius: 11px;
+  padding: 17px;
+}
+.algorithm-card strong {
+  color: #315b9d;
+}
+.algorithm-card p {
+  color: #6c85a8;
+}
+.model-row {
+  border-radius: 11px;
+  padding: 18px 13px;
+}
+.model-row.selected {
+  background: #edf3ff;
+}
+.score-cards > div {
+  border-radius: 12px;
+  padding: 20px;
+}
+.score-cards b {
+  color: #315fbd;
+}
+.score-cards b small {
+  color: #6f8cbe;
+}
+.catalog-filters {
+  border-radius: 14px;
+}
+.analysis-side .panelhead {
+  padding: 19px;
+}
+.analysis-side .formbody {
+  padding: 6px 19px 20px;
+}
+.depth-toolbar {
+  background: #f7faff;
+}
+.curve-toggles label {
+  border-radius: 7px;
+  padding: 7px 9px;
+}
+.field input,
+.field select,
+.field textarea {
+  line-height: 1.5;
+}
+.key-value {
+  color: #69809b;
+}
+.model-list small {
+  color: #71859e;
+}
+.notice {
+  border-radius: 11px;
+}
+.source-grid .formbody {
+  min-height: 285px;
+}
+.source-grid p,
+.data-requirements p {
+  color: #667d97;
+}
+.tabs button.active {
+  background: #edf3ff;
+  border-radius: 9px 9px 0 0;
+}
+.method-tabs button.active {
+  background: #edf3ff;
+  border-color: #d9e5ff;
+  color: #3267ce;
+}
+footer {
+  color: #788ba4;
+  font-size: 10px;
+}
+
+@media (min-width: 1600px) {
+  main {
+    padding: 38px 46px 20px;
+  }
+}
+@media (max-width: 1200px) {
+  .sidebar {
+    width: 222px;
+  }
+  .brand {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  main {
+    padding: 27px 23px 16px;
+  }
+  .topbar {
+    padding: 0 23px;
+  }
+  .metric {
+    padding: 18px;
+  }
+  .well-cards {
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+  .well-card {
+    gap: 10px;
+  }
+  .model-promo {
+    padding: 23px;
+  }
+  .panelhead {
+    padding: 19px;
+  }
+}
+@media (max-width: 1000px) {
+  .sidebar {
+    width: 208px;
+  }
+  .project-box strong {
+    font-size: 9px;
+  }
+  .sidebar nav a {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+  .brand {
+    font-size: 20px;
+    padding-left: 14px;
+  }
+  .brand-icon {
+    width: 34px;
+    height: 38px;
+  }
+}
+@media (max-width: 700px) {
+  main {
+    padding: 24px 16px 14px;
+  }
+  .topbar {
+    height: 60px;
+    padding: 0 14px;
+  }
+  h1 {
+    font-size: 26px;
+  }
+  .pagehead {
+    margin-bottom: 23px;
+    gap: 16px;
+  }
+  .pagehead p {
+    font-size: 12px;
+  }
+  .pagehead .primary {
+    min-height: 41px;
+    font-size: 12px;
+  }
+  .metrics {
+    gap: 11px;
+    margin-bottom: 21px;
+  }
+  .metric {
+    padding: 15px;
+  }
+  .metric-label {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .metric strong {
+    font-size: 30px;
+    margin: 13px 0 8px;
+  }
+  .metric > small {
+    font-size: 10px;
+  }
+  .metric-icon {
+    width: 29px;
+    height: 29px;
+    border-radius: 9px;
+  }
+  .panelhead {
+    padding: 17px;
+    min-height: 60px;
+  }
+  .panelhead h2 {
+    font-size: 14px;
+  }
+  .panelhead > a {
+    font-size: 11px;
+  }
+  .panel-description {
+    padding: 15px 17px 5px;
+    font-size: 11px;
+  }
+  .well-cards {
+    padding: 0 15px 12px;
+  }
+  .well-card {
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 19px 0;
+  }
+  .well-card-main strong {
+    font-size: 12px;
+  }
+  .well-card-main > span {
+    font-size: 10px;
+  }
+  .well-symbol {
+    width: 35px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .well-card-status .badge {
+    font-size: 9px;
+    padding: 3px 5px;
+  }
+  .well-card > svg {
+    width: 13px;
+  }
+  .formbody {
+    padding: 18px;
+  }
+  .model-promo {
+    padding: 24px;
+  }
+  .model-promo h2 {
+    font-size: 23px;
+  }
+  .well-header {
+    padding: 16px;
+  }
+  .drop {
+    padding: 21px;
+  }
+  .curve-toggles label {
+    padding: 6px;
+  }
+  .top-status {
+    font-size: 0;
+  }
+  .score-cards > div {
+    padding: 14px;
+  }
+  .source-grid .formbody {
+    min-height: 0;
+  }
+  .foot {
+    padding: 11px 16px;
+  }
+  footer {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .button,
+  .primary {
+    transition: none;
+  }
+}

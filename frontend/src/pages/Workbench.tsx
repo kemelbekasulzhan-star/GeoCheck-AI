@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useId, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
@@ -43,7 +43,8 @@ export function Workbench({
   models: Model[];
 }) {
   const cache = useQueryClient();
-  const [runId, setRunId] = useState(""),
+  const [params] = useSearchParams();
+  const [runId, setRunId] = useState(params.get("run") ?? ""),
     [modelId, setModelId] = useState(""),
     [channels, setChannels] = useState(Object.keys(well.units).slice(0, 5));
   const [usedMethods, setUsedMethods] = useState(Object.keys(methods)),
@@ -592,6 +593,7 @@ function ReviewEditor({
   index: number;
   review?: Review;
 }) {
+  const commentId = useId();
   const cache = useQueryClient(),
     [comment, setComment] = useState(review?.comment ?? "");
   const save = useMutation({
@@ -610,16 +612,17 @@ function ReviewEditor({
   });
   return (
     <>
-      <label className="field">
-        Комментарий
+      <div className="field">
+        <label htmlFor={commentId}>Комментарий</label>
         <textarea
+          id={commentId}
           maxLength={2000}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Например, подтверждено по повторному замеру"
           rows={3}
         />
-      </label>
+      </div>
       <div className="review-actions">
         <button
           disabled={save.isPending}

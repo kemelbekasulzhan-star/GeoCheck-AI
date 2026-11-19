@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Upload, Trash2, ArrowUpRight, FileSpreadsheet } from "lucide-react";
@@ -21,32 +21,79 @@ export function Workspace({
   const [error, setError] = useState(""),
     [hidden, setHidden] = useState<string[]>([]);
   const [page, setPage] = useState(0);
+  useEffect(() => {
+    setPage(0);
+    setHidden([]);
+  }, [well?.id]);
   const [search, setSearch] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [source, setSource] = useState("upload");
+  const [batch, setBatch] = useState<
+    { name: string; status: string; error?: string; id?: string }[]
+  >([]);
+  const busy = useRef(false);
   const upload = useMutation({
-    mutationFn: async (file: File) => {
-      if (file.size > 10485760) throw Error("Максимальный размер — 10 МиБ.");
-      const form = new FormData();
-      form.append("file", file);
-      if (sourceUrl) form.append("source_url", sourceUrl);
-      return api<Well>("/datasets/upload", { method: "POST", body: form });
+    mutationFn: async (files: File[]) => {
+      const items = files.map((file) => ({
+        name: file.name,
+        status: "Ожидает",
+        error: undefined as string | undefined,
+        id: undefined as string | undefined,
+      }));
+      const uploaded: Well[] = [];
+      setBatch([...items]);
+      for (const [index, file] of files.entries()) {
+        items[index] = { ...items[index], status: "Загрузка…" };
+        setBatch([...items]);
+        try {
+          if (file.size > 10485760)
+            throw Error("Максимальный размер — 10 МиБ.");
+          const form = new FormData();
+          form.append("file", file);
+          form.append("source", source);
+          if (sourceUrl) form.append("source_url", sourceUrl);
+          const well = await api<Well>("/datasets/upload", {
+            method: "POST",
+            body: form,
+          });
+          uploaded.push(well);
+          items[index] = { ...items[index], status: "Сохранён", id: well.id };
+        } catch (e) {
+          items[index] = {
+            ...items[index],
+            status: "Ошибка",
+            error: e instanceof Error ? e.message : "Не удалось загрузить файл",
+          };
+        }
+        setBatch([...items]);
+      }
+      return uploaded;
     },
-    onSuccess: async (w) => {
+    onSuccess: async (uploaded) => {
       await cache.invalidateQueries({ queryKey: ["/datasets"] });
-      select(w.id);
+      if (uploaded.length) select(uploaded[uploaded.length - 1].id);
       setPage(0);
       setHidden([]);
     },
     onError: (e) => setError(e.message),
+    onSettled: () => {
+      busy.current = false;
+    },
   });
   const remove = useMutation({
     mutationFn: (id: string) => api("/datasets/" + id, { method: "DELETE" }),
     onSuccess: () => cache.invalidateQueries(),
     onError: (e) => setError(e.message),
   });
-  function load(file?: File) {
+  function load(files: File[]) {
     setError("");
-    if (file && !upload.isPending) upload.mutate(file);
+    if (busy.current || !files.length) return;
+    if (files.length > 20) {
+      setError("Выберите до 20 файлов за один раз.");
+      return;
+    }
+    busy.current = true;
+    upload.mutate(files);
   }
   const cols = Object.keys(well?.units ?? {}).filter(
       (k) => !hidden.includes(k),
@@ -62,7 +109,7 @@ export function Workspace({
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
-          load(e.dataTransfer.files[0]);
+          load(Array.from(e.dataTransfer.files));
         }}
       >
         <span className="tile green">
@@ -70,27 +117,42 @@ export function Workspace({
         </span>
         <div>
           <h2>Загрузить каротажные данные</h2>
-          <p>Перетащите файл LAS или CSV · до 10 МиБ</p>
+          <p>До 20 файлов LAS или CSV за раз · до 10 МиБ каждый</p>
         </div>
         <button
           className="primary"
           disabled={upload.isPending}
           onClick={() => input.current?.click()}
         >
-          {upload.isPending ? "Загрузка…" : "Выбрать файл"}
+          {upload.isPending ? "Загрузка…" : "Выбрать файлы"}
         </button>
         <input
           type="file"
           accept=".csv,.las"
+          multiple
           hidden
           ref={input}
           onChange={(e) => {
-            load(e.target.files?.[0]);
+            load(Array.from(e.target.files ?? []));
             e.target.value = "";
           }}
         />
       </div>
       <div className="catalog-filters">
+        <label className="field">
+          Тип загружаемых данных
+          <select
+            value={source}
+            disabled={upload.isPending}
+            onChange={(e) => setSource(e.target.value)}
+          >
+            <option value="upload">Файлы пользователя</option>
+            <option value="synthetic">Синтетические / учебные данные</option>
+          </select>
+          <small>
+            Тип и ссылка применяются ко всем файлам выбранной партии.
+          </small>
+        </label>
         <label className="field">
           Найти скважину
           <input
@@ -103,6 +165,7 @@ export function Workspace({
           Источник следующего загружаемого файла
           <input
             type="url"
+            disabled={upload.isPending}
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
             placeholder="https://… (необязательно)"
@@ -111,6 +174,40 @@ export function Workspace({
         </label>
       </div>
       {error && <p role="alert">{error}</p>}
+      {!!batch.length && (
+        <Panel title="Результат загрузки">
+          <div className="formbody" aria-live="polite">
+            <p>
+              {upload.isPending
+                ? "Обрабатываем файлы последовательно…"
+                : "Загрузка завершена."}{" "}
+              Сохранено {batch.filter((x) => x.id).length} из {batch.length}.
+              Ошибки одного файла не отменяют остальные.
+            </p>
+            <ul className="batch-results">
+              {batch.map((item, i) => (
+                <li key={i}>
+                  <strong>{item.name}</strong>
+                  <span>{item.status}</span>
+                  {item.error && <span role="alert">{item.error}</span>}
+                  {item.id && (
+                    <button
+                      className="textbtn"
+                      onClick={() => {
+                        select(item.id!);
+                        setPage(0);
+                        setHidden([]);
+                      }}
+                    >
+                      Открыть данные
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Panel>
+      )}
       <Panel title="Каталог скважин">
         <div className="scroll">
           <table>

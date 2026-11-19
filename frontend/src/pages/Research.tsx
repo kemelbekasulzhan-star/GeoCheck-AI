@@ -16,6 +16,7 @@ import {
 } from "../api";
 import { Findings, History, Panel, Source } from "../components/ui";
 import { LogPlot } from "../components/LogPlot";
+import { QualityPassport, Passport } from "../components/QualityPassport";
 export function Viewer({
   well,
   data,
@@ -245,6 +246,7 @@ export function Quality({
   );
 }
 interface Report extends Run {
+  passport: Passport;
   well: Well;
   result: Result;
   plot: Logs;
@@ -261,6 +263,7 @@ export function Reports({ runs, wells }: { runs: Run[]; wells: Well[] }) {
       <Panel title="Сохранённые анализы">
         <History wells={wells} runs={runs} />
       </Panel>
+      {r?.passport && <QualityPassport value={r.passport} runId={r.id} />}
       {id && (
         <Panel
           title="Отчёт по скважине"
@@ -329,7 +332,7 @@ export function Reports({ runs, wells }: { runs: Run[]; wells: Well[] }) {
                     href={"/api/reports/" + id + "/csv"}
                     download
                   >
-                    <Download size={14} /> CSV интервалов
+                    <Download size={14} /> CSV с решениями
                   </a>
                 </div>
               </div>

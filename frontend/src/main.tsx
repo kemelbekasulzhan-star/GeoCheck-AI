@@ -40,6 +40,7 @@ import { Models } from "./pages/Models";
 import { Overview } from "./pages/Overview";
 import { Sources } from "./pages/Sources";
 import "./styles.css";
+import "./workspace-theme.css";
 
 const navigation = [
   {
@@ -97,7 +98,14 @@ function App() {
   const wells = datasets.data ?? [],
     runs = analyses.data ?? [],
     trained = models.data ?? [];
-  const well = wells.find((w) => w.id === selected) ?? wells[0];
+  const requestedRunId =
+    location.pathname === "/viewer"
+      ? new URLSearchParams(location.search).get("run")
+      : null;
+  const requestedRun = runs.find((r) => r.id === requestedRunId);
+  const well =
+    wells.find((w) => w.id === (requestedRun?.dataset_id ?? selected)) ??
+    wells[0];
   const logs = useApi<Logs>("/datasets/" + well?.id + "/curves", !!well);
   function select(id: string) {
     setSelected(id);
@@ -315,7 +323,6 @@ function App() {
               path="/data"
               element={
                 <Workspace
-                  key={well?.id}
                   wells={wells}
                   well={well}
                   data={logs.data}
@@ -328,7 +335,7 @@ function App() {
               element={
                 well && logs.data ? (
                   <Workbench
-                    key={well.id}
+                    key={well.id + (requestedRunId ?? "")}
                     well={well}
                     data={logs.data}
                     runs={runs.filter((r) => r.dataset_id === well.id)}
