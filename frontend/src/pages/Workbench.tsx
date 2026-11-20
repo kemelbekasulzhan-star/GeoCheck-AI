@@ -31,6 +31,7 @@ import {
 } from "../api";
 import { Panel, Source } from "../components/ui";
 import { LogPlot } from "../components/LogPlot";
+import { Assistant } from "../components/Assistant";
 export function Workbench({
   well,
   data,
@@ -426,6 +427,13 @@ export function Workbench({
           </Panel>
         </div>
       </div>
+      {run && (
+        <Assistant
+          key={run.id + ":" + selected}
+          runId={run.id}
+          index={item ? selected : undefined}
+        />
+      )}
       <Panel
         title="Результаты и замечания"
         action={

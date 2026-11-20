@@ -4,7 +4,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DEMO_DIR = Path(__file__).resolve().parents[2] / "data" / "demo"
+from .paths import BUNDLE_ROOT
+
+DEMO_DIR = BUNDLE_ROOT / "data" / "demo"
 COLUMNS = ["GR [API]", "RHOB [g/cm3]", "NPHI [v/v]", "DT [us/ft]", "RES [ohm.m]"]
 
 

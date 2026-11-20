@@ -7,4 +7,8 @@ runtime/
 .cache/
 *.log
 .env*
+local-ai/
+release/
+build/
+*.spec
 

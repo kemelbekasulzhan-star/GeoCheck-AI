@@ -22,8 +22,10 @@ from .laboratory import attach_routes, reviews_for
 from .training import load_saved
 from .ml import analyze
 from .reporting import quality_passport, passport_text, spreadsheet_safe
+from .paths import BUNDLE_ROOT, WORK_ROOT
+from .assistant import LocalAssistant, attach_assistant
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = BUNDLE_ROOT
 LIMITATION = "Статистическое отклонение требует экспертной проверки. Фациальная граница также может вызвать предупреждение."
 
 
@@ -57,8 +59,9 @@ def save_run(db, dataset, settings, model=None):
 
 
 def create_app(folder=None, seed=True):
-    folder = Path(folder or os.getenv("GEOCHECK_HOME", ROOT / "runtime"))
+    folder = Path(folder or os.getenv("GEOCHECK_HOME", WORK_ROOT / "runtime"))
     folder.mkdir(parents=True, exist_ok=True)
+    assistant = LocalAssistant(folder)
     engine = create_engine("sqlite:///" + (folder / "geocheck.sqlite").as_posix(),
                            connect_args={"check_same_thread": False, "timeout": 30})
 
@@ -78,6 +81,7 @@ def create_app(folder=None, seed=True):
                 save_run(db, dataset, Settings(curves=list(dataset.data["curves"])))
                 db.add(Marker(id="demo-v1"))
         yield
+        assistant.close()
         engine.dispose()
 
     app = FastAPI(title="GeoCheck AI", version="2.0.0", lifespan=lifespan)
@@ -204,6 +208,7 @@ def create_app(folder=None, seed=True):
                         headers={"Content-Disposition": 'attachment; filename="findings.csv"'})
 
     attach_routes(app, session, get, summary, save_run, Settings)
+    attach_assistant(app, assistant, session, get)
     dist = ROOT / "frontend" / "dist"
     if (dist / "index.html").is_file():
         app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")

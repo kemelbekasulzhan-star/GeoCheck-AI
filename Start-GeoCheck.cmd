@@ -2,16 +2,17 @@
 setlocal
 cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (
- echo Install Python dependencies first. See README.md.
+ echo First install: open Install-GeoCheck.cmd. GitHub ZIP contains source files only.
+ echo Python 3.12 and Node.js 22.12+ or 24 are required. See README.md.
  pause
  exit /b 1
 )
 if not exist "frontend\dist\index.html" (
- echo Build the frontend first. See README.md.
+ echo Frontend is not built. Open Install-GeoCheck.cmd first. See README.md.
  pause
  exit /b 1
 )
 echo GeoCheck AI: http://127.0.0.1:8000
-".venv\Scripts\python.exe" -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
+".venv\Scripts\python.exe" scripts\launch.py
 if errorlevel 1 pause
 

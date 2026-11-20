@@ -1,4 +1,24 @@
 /* Presentation layer for the spacious blue workspace. */
+.assistant-panel form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.assistant-panel textarea {
+  width: 100%;
+  resize: vertical;
+}
+.assistant-panel .notice {
+  display: block;
+}
+.assistant-answer {
+  border-top: 1px solid var(--border);
+  margin-top: 22px;
+  padding-top: 18px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
 .passport-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
